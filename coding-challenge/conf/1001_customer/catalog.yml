@@ -1,0 +1,25 @@
+## Raw data 
+01_sales:
+  type: IncrementalDataSet
+  path: ${filepath_prefix}/00_sales
+  filename_suffix: ".csv"
+  dataset:
+    type: pandas.CSVDataSet
+    load_args:
+      sep: ';'
+      decimal: ","
+      header: 0
+      encoding: "cp1250"
+      parse_dates: ["Datum"]
+      dayfirst: True
+  checkpoint:
+    filepath: ${filepath_prefix}/00_sales/CHECKPOINT-Dev
+
+## ETL
+
+
+
+## Monitoring
+99_EmptySalesLog:
+  type: text.TextDataSet
+  filepath: ${filepath_prefix}/99_EmptySalesLog.txt

@@ -1,0 +1,20 @@
+[tool.kedro]
+package_name = "coding_challenge"
+project_name = "coding challenge"
+kedro_init_version = "0.18.10"
+
+[tool.isort]
+profile = "black"
+
+[tool.pytest.ini_options]
+addopts = """
+--cov-report term-missing \
+--cov src/coding_challenge -ra"""
+
+[tool.coverage.report]
+fail_under = 0
+show_missing = true
+exclude_lines = ["pragma: no cover", "raise NotImplementedError"]
+
+[tool.kedro_telemetry]
+project_id = "d1876ea1061747d89122bc10e247843f"
