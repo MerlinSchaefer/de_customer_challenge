@@ -17,7 +17,7 @@ Einheitlicher Tages-Eintrag (fact) je Produkt × Filiale × Datum mit sales_qty,
 ## How&Why
 
 Laden und Standardisierung: 
-- Kundenformate landen roh in Bronze
+- Kundenformate landen leicht verändert in Bronze
 - Silber vereinheitlicht (Spaltennamen, Typen, Dezimalkomma, Datumsformat, Kodierung)
 
 Keys: 
@@ -35,7 +35,7 @@ Gold & VIEWs:
 
 ### 1) Bronze (Laden & minimales Cleaning/Renaming)
 
-Pro Kunde leicht unterschiedlich (z. B. 1001 csv mit Semikolons):
+Pro Kunde leicht unterschiedlich (z. B. 1001 csv mit Semikolons; 1003 JSON):
 
 Input: 
 - CSV,JSON, später ggf. weitere
