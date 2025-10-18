@@ -2,3 +2,419 @@
 #
 # Documentation for this file format can be found in "The Data Catalog"
 # Link: https://docs.kedro.org/en/stable/data/data_catalog.html
+## ingest config 
+ingestion_config:
+  type: yaml.YAMLDataSet
+  filepath: conf/base/ingestion.yml
+
+# log in memory datasets
+empty_sales_log_1001:
+  type: MemoryDataSet
+
+empty_sales_log_1002:
+  type: MemoryDataSet
+
+## Raw data 
+# COSMOS (customer 1001)
+raw_1001_sales:
+  type: IncrementalDataSet
+  path: ${filepath_prefix}/1001/00_sales
+  filename_suffix: ".csv"
+  dataset:
+    type: pandas.CSVDataSet
+    load_args:
+      sep: ";"
+      decimal: ","
+      header: 0
+      encoding: "cp1250"
+      parse_dates: ["Datum"]
+      dayfirst: True
+  checkpoint:
+    filepath: ${filepath_prefix}/1001/00_sales/CHECKPOINT
+
+raw_1001_deliveries:
+  type: IncrementalDataSet
+  path: ${filepath_prefix}/1001/00_deliveries
+  filename_suffix: ".csv"
+  dataset:
+    type: pandas.CSVDataSet
+    load_args:
+      sep: ";"
+      decimal: ","
+      header: 0
+      encoding: "cp1250"
+      parse_dates: ["Datum"]
+      dayfirst: True
+  checkpoint:
+    filepath: ${filepath_prefix}/1001/00_deliveries/CHECKPOINT
+
+raw_1001_products:
+  type: IncrementalDataSet
+  path: ${filepath_prefix}/1001/00_products
+  filename_suffix: ".csv"
+  dataset:
+    type: pandas.CSVDataSet
+    load_args:
+      sep: ";"
+      decimal: ","
+      header: 0
+      encoding: "cp1250"
+  checkpoint:
+    filepath: ${filepath_prefix}/1001/00_products/CHECKPOINT
+
+raw_1001_stores:
+  type: IncrementalDataSet
+  path: ${filepath_prefix}/1001/00_stores
+  filename_suffix: ".csv"
+  dataset:
+    type: pandas.CSVDataSet
+    load_args:
+      sep: ";"
+      decimal: ","
+      header: 0
+      encoding: "cp1250"
+  checkpoint:
+    filepath: ${filepath_prefix}/1001/00_stores/CHECKPOINT
+
+# Mappings (Parquet)in RAW eingelesen,nicht inkrementell
+raw_1001_mapping_product:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/1001/01_mappings/mapping_product.parquet
+
+raw_1001_mapping_store:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/1001/01_mappings/mapping_store.parquet
+
+
+# COSMOS (customer 1002); identische Struktur/Args
+raw_1002_sales:
+  type: IncrementalDataSet
+  path: ${filepath_prefix}/1002/00_sales
+  filename_suffix: ".csv"
+  dataset:
+    type: pandas.CSVDataSet
+    load_args:
+      sep: ";"
+      decimal: ","
+      header: 0
+      encoding: "cp1250"
+      parse_dates: ["Datum"]
+      dayfirst: True
+  checkpoint:
+    filepath: ${filepath_prefix}/1002/00_sales/CHECKPOINT
+
+raw_1002_deliveries:
+  type: IncrementalDataSet
+  path: ${filepath_prefix}/1002/00_deliveries
+  filename_suffix: ".csv"
+  dataset:
+    type: pandas.CSVDataSet
+    load_args:
+      sep: ";"
+      decimal: ","
+      header: 0
+      encoding: "cp1250"
+      parse_dates: ["Datum"]
+      dayfirst: True
+  checkpoint:
+    filepath: ${filepath_prefix}/1002/00_deliveries/CHECKPOINT
+
+raw_1002_products:
+  type: IncrementalDataSet
+  path: ${filepath_prefix}/1002/00_products
+  filename_suffix: ".csv"
+  dataset:
+    type: pandas.CSVDataSet
+    load_args:
+      sep: ";"
+      decimal: ","
+      header: 0
+      encoding: "cp1250"
+  checkpoint:
+    filepath: ${filepath_prefix}/1002/00_products/CHECKPOINT
+
+raw_1002_stores:
+  type: IncrementalDataSet
+  path: ${filepath_prefix}/1002/00_stores
+  filename_suffix: ".csv"
+  dataset:
+    type: pandas.CSVDataSet
+    load_args:
+      sep: ";"
+      decimal: ","
+      header: 0
+      encoding: "cp1250"
+  checkpoint:
+    filepath: ${filepath_prefix}/1002/00_stores/CHECKPOINT
+
+raw_1002_mapping_product:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/1002/01_mappings/mapping_product.parquet
+
+raw_1002_mapping_store:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/1002/01_mappings/mapping_store.parquet
+
+
+# GALAXY (customer 1003)
+# deliveries + sales sind in einer JSON-Quelle (00_deliveries_sales) ; flatten später in Bronze
+raw_1003_deliveries_sales:
+  type: IncrementalDataSet
+  path: ${filepath_prefix}/1003/00_deliveries_sales
+  filename_suffix: ".json"
+  dataset:
+    type: pandas.JSONDataSet
+    load_args:
+      encoding: "utf-8"
+  checkpoint:
+    filepath: ${filepath_prefix}/1003/00_deliveries_sales/CHECKPOINT
+
+# Preise sind eigene JSON/CSV-Dateien; README sagt JSON
+raw_1003_prices:
+  type: IncrementalDataSet
+  path: ${filepath_prefix}/1003/00_prices
+  filename_suffix: ".json"
+  dataset:
+    type: pandas.JSONDataSet
+    load_args:
+      encoding: "utf-8"
+  checkpoint:
+    filepath: ${filepath_prefix}/1003/00_prices/CHECKPOINT
+
+raw_1003_products:
+  type: IncrementalDataSet
+  path: ${filepath_prefix}/1003/00_products
+  filename_suffix: ".json"
+  dataset:
+    type: pandas.JSONDataSet
+    load_args:
+      encoding: "utf-8"
+  checkpoint:
+    filepath: ${filepath_prefix}/1003/00_products/CHECKPOINT
+
+raw_1003_stores:
+  type: IncrementalDataSet
+  path: ${filepath_prefix}/1003/00_stores
+  filename_suffix: ".json"
+  dataset:
+    type: pandas.JSONDataSet
+    load_args:
+      encoding: "utf-8"
+  checkpoint:
+    filepath: ${filepath_prefix}/1003/00_stores/CHECKPOINT
+
+raw_1003_mapping_product:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/1003/01_mappings/mapping_product.parquet
+
+raw_1003_mapping_store:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/1003/01_mappings/mapping_store.parquet
+
+
+## ETL
+# Hinweis:
+# - Partitionierte Tagesdaten (Bronze/Silver/Gold Fact) → PartitionedDataset + Parquet
+# - Nicht-partitionierte Tabellen (Dimensionen, Views) → ParquetDataSet
+# - Logs/Monitoring → TextDataSet (append-only über Utility in den Nodes)
+# - ${filepath_prefix} bitte in conf/base/globals.yml oder Kedro-Env definieren.
+
+# ---------- BRONZE (RAW → standardisiert) ----------
+# COSMOS 1001
+bronze.sales_1001:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/10_bronze/sales_1001.parquet
+  save_args: { compression: snappy }
+
+bronze.deliveries_1001:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/10_bronze/deliveries_1001.parquet
+  save_args: { compression: snappy }
+
+bronze.products_1001:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/10_bronze/products_1001.parquet
+  save_args: { compression: snappy }
+
+bronze.stores_1001:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/10_bronze/stores_1001.parquet
+  save_args: { compression: snappy }
+
+# COSMOS 1002
+bronze.sales_1002:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/10_bronze/sales_1002.parquet
+  save_args: { compression: snappy }
+
+bronze.deliveries_1002:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/10_bronze/deliveries_1002.parquet
+  save_args: { compression: snappy }
+
+bronze.products_1002:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/10_bronze/products_1002.parquet
+  save_args: { compression: snappy }
+
+bronze.stores_1002:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/10_bronze/stores_1002.parquet
+  save_args: { compression: snappy }
+
+# GALAXY 1003
+bronze.deliveries_sales_1003:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/10_bronze/deliveries_sales_1003.parquet
+  save_args: { compression: snappy }
+
+bronze.prices_1003:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/10_bronze/prices_1003.parquet
+  save_args: { compression: snappy }
+
+bronze.products_1003:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/10_bronze/products_1003.parquet
+  save_args: { compression: snappy }
+
+bronze.stores_1003:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/10_bronze/stores_1003.parquet
+  save_args: { compression: snappy }
+
+# (Optional) Vereinheitlichte Bronze-Datasets (überschrieben im Merge-Node)
+bronze.sales_all:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/10_bronze/sales_all.parquet
+  save_args: { compression: snappy }
+  load_args: {}  # vorhanden sein ist optional, Node erzeugt sie
+
+bronze.deliveries_all:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/10_bronze/deliveries_all.parquet
+  save_args: { compression: snappy }
+
+bronze.products_all:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/10_bronze/products_all.parquet
+  save_args: { compression: snappy }
+
+bronze.stores_all:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/10_bronze/stores_all.parquet
+  save_args: { compression: snappy }
+
+# # ---------- SILVER (konformiert, Tagesgrain) ----------
+# silver.products:
+#   type: pandas.ParquetDataSet
+#   filepath: ${filepath_prefix}/20_silver/products.parquet
+#   save_args:
+#     compression: snappy
+
+# silver.stores:
+#   type: pandas.ParquetDataSet
+#   filepath: ${filepath_prefix}/20_silver/stores.parquet
+#   save_args:
+#     compression: snappy
+
+# silver.daily_sales:
+#   type: PartitionedDataset
+#   dataset: pandas.ParquetDataSet
+#   path: ${filepath_prefix}/20_silver/daily_sales
+#   filename_suffix: .parquet
+#   dataset_config:
+#     save_args:
+#       compression: snappy
+
+# silver.daily_deliveries:
+#   type: PartitionedDataset
+#   dataset: pandas.ParquetDataSet
+#   path: ${filepath_prefix}/20_silver/daily_deliveries
+#   filename_suffix: .parquet
+#   dataset_config:
+#     save_args:
+#       compression: snappy
+
+# silver.daily_returns:
+#   type: PartitionedDataset
+#   dataset: pandas.ParquetDataSet
+#   path: ${filepath_prefix}/20_silver/daily_returns
+#   filename_suffix: .parquet
+#   dataset_config:
+#     save_args:
+#       compression: snappy
+
+# # Vereinheitlichte Tagespreise (cosmos aus products, galaxy aus prices)
+# silver.daily_prices:
+#   type: PartitionedDataset
+#   dataset: pandas.ParquetDataSet
+#   path: ${filepath_prefix}/20_silver/daily_prices
+#   filename_suffix: .parquet
+#   dataset_config:
+#     save_args:
+#       compression: snappy
+
+
+# # ---------- GOLD (konsumbereit) ----------
+# gold.fact_daily_store_product:
+#   type: PartitionedDataset
+#   dataset: pandas.ParquetDataSet
+#   path: ${filepath_prefix}/30_gold/fact_daily_store_product
+#   filename_suffix: .parquet
+#   dataset_config:
+#     save_args:
+#       compression: snappy
+
+# gold.dim_product:
+#   type: pandas.ParquetDataSet
+#   filepath: ${filepath_prefix}/30_gold/dim_product.parquet
+#   save_args:
+#     compression: snappy
+
+# gold.dim_store:
+#   type: pandas.ParquetDataSet
+#   filepath: ${filepath_prefix}/30_gold/dim_store.parquet
+#   save_args:
+#     compression: snappy
+
+# gold.app_view_daily:
+#   type: pandas.ParquetDataSet
+#   filepath: ${filepath_prefix}/30_gold/app_view_daily.parquet
+#   save_args:
+#     compression: snappy
+
+# gold.features_ml_daily:
+#   type: pandas.ParquetDataSet
+#   filepath: ${filepath_prefix}/30_gold/features_ml_daily.parquet
+#   save_args:
+#     compression: snappy
+
+
+# ---------- MONITORING / LOGS (Text) ----------
+99_EmptySalesLog:
+  type: text.TextDataSet
+  filepath: ${filepath_prefix}/99_monitoring/99_EmptySalesLog.txt
+
+# 99_MissingMappingProductLog:
+#   type: text.TextDataSet
+#   filepath: ${filepath_prefix}/99_monitoring/99_MissingMappingProductLog.txt
+
+# 99_MissingMappingStoreLog:
+#   type: text.TextDataSet
+#   filepath: ${filepath_prefix}/99_monitoring/99_MissingMappingStoreLog.txt
+
+# 99_ParseErrorLog:
+#   type: text.TextDataSet
+#   filepath: ${filepath_prefix}/99_monitoring/99_ParseErrorLog.txt
+
+# 99_IdPrefixErrorLog:
+#   type: text.TextDataSet
+#   filepath: ${filepath_prefix}/99_monitoring/99_IdPrefixErrorLog.txt
+
+# 99_DailyRunReportLog:
+#   type: text.TextDataSet
+#   filepath: ${filepath_prefix}/99_monitoring/99_DailyRunReportLog.txt
+
+
+

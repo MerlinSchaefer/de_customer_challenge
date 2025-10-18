@@ -1,6 +1,10 @@
 version = 1
 revision = 3
 requires-python = "==3.9.23"
+resolution-markers = [
+    "sys_platform != 'win32'",
+    "sys_platform == 'win32'",
+]
 
 [[package]]
 name = "aiofiles"
@@ -44,6 +48,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/28/99/2dfd53fd55ce9838e6ff2d4dac20ce58263798bd1a0dbe18b3a9af3fcfce/anyio-3.7.1.tar.gz", hash = "sha256:44a3c9aba0f5defa43261a8b3efb97891f2bd7d804e0e1f56419befa1adfc780", size = 142927, upload-time = "2023-07-05T16:45:02.294Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/19/24/44299477fe7dcc9cb58d0a57d5a7588d6af2ff403fdd2d47a246c91a3246/anyio-3.7.1-py3-none-any.whl", hash = "sha256:91dee416e570e92c64041bd18b900d1d6fa78dff7048769ce5ac5ddad004fbb5", size = 80896, upload-time = "2023-07-05T16:44:59.805Z" },
+]
+
+[[package]]
+name = "appdirs"
+version = "1.4.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d7/d8/05696357e0311f5b5c316d7b95f46c669dd9c15aaeecbb48c7d0aeb88c40/appdirs-1.4.4.tar.gz", hash = "sha256:7d5d0167b2b1ba821647616af46a749d1c653740dd0d2415100fe26e27afdf41", size = 13470, upload-time = "2020-05-11T07:59:51.037Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3b/00/2344469e2084fb287c2e0b57b72910309874c3245463acd6cf5e3db69324/appdirs-1.4.4-py2.py3-none-any.whl", hash = "sha256:a841dacd6b99318a741b166adb07e19ee71a274450e68237b4650ca1055ab128", size = 9566, upload-time = "2020-05-11T07:59:49.499Z" },
 ]
 
 [[package]]
@@ -339,8 +352,8 @@ requires-dist = [
     { name = "jupyterlab", specifier = "~=3.0,<3.6.0" },
     { name = "jupyterlab-server", specifier = ">=2.11.1,<2.16.0" },
     { name = "kedro", specifier = "~=0.18.10" },
-    { name = "kedro-telemetry", specifier = "~=0.2.0" },
-    { name = "kedro-viz", specifier = ">=10.0.0" },
+    { name = "kedro-telemetry", specifier = ">=0.2.0" },
+    { name = "kedro-viz", specifier = ">=11.1.0" },
     { name = "nbstripout", specifier = "~=0.4" },
     { name = "numpy", specifier = "~=1.24.2" },
     { name = "pandas", specifier = ">=2.1.0" },
@@ -978,20 +991,23 @@ wheels = [
 
 [[package]]
 name = "kedro-telemetry"
-version = "0.2.5"
+version = "0.6.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "appdirs" },
     { name = "kedro" },
     { name = "requests" },
+    { name = "tomli" },
+    { name = "tomli-w" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/51/02/9ba9939181f27d7eccb881cdfe0f8b42e9d2973a921d6de4e218a02671dc/kedro-telemetry-0.2.5.tar.gz", hash = "sha256:261cab69501f818420cf9c3517bb013be8fefd4978972b4a8f15c59adf57c2de", size = 11580, upload-time = "2023-08-03T11:04:35.319Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b1/a6/f6bc26a9e95b39e975ec375c6226371874860cd912443dfe00a3c77f9297/kedro_telemetry-0.6.5.tar.gz", hash = "sha256:d46f9b277ad5f38a741752da039a0c96ebbbb00057a739a792cfbc6adc0e44a1", size = 16072, upload-time = "2025-09-17T11:18:33.67Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6a/56/c6e56bea8a0543946c5185d5610511a8dcc4bdfb750131b4ce6e8f536d84/kedro_telemetry-0.2.5-py3-none-any.whl", hash = "sha256:792718735ac856e57a26bbf5d70152bafe12b78bcebda7b7e34a2e2840f42aa7", size = 8486, upload-time = "2023-08-03T11:04:33.875Z" },
+    { url = "https://files.pythonhosted.org/packages/8e/fd/08d2707fa4b042a893b1460838b43d78fec8ba59ee7ac3c3c609f20fb9d8/kedro_telemetry-0.6.5-py3-none-any.whl", hash = "sha256:6ceb2768d25645c6c8651c5d7fed9f085fdfbccaa21881742deb3206584e543b", size = 9805, upload-time = "2025-09-17T11:18:32.75Z" },
 ]
 
 [[package]]
 name = "kedro-viz"
-version = "10.0.0"
+version = "11.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
@@ -1000,21 +1016,23 @@ dependencies = [
     { name = "fsspec" },
     { name = "ipython" },
     { name = "kedro" },
+    { name = "kedro-telemetry" },
     { name = "networkx" },
     { name = "orjson" },
     { name = "packaging" },
     { name = "pandas" },
+    { name = "pathspec" },
     { name = "plotly" },
     { name = "pydantic" },
     { name = "secure" },
     { name = "sqlalchemy" },
     { name = "strawberry-graphql" },
     { name = "uvicorn", extra = ["standard"] },
-    { name = "watchgod" },
+    { name = "watchfiles" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/63/58/b43a24b2d8564535ceb7e71ef2d1e3dd5ad715948eaa38b1682f5cc3cb6d/kedro_viz-10.0.0.tar.gz", hash = "sha256:49786fba0e56a5d06f73623a1c51913ce876383bc56adb04477fe9b12bf054a2", size = 2424764, upload-time = "2024-09-19T16:48:03.438Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f7/f8/54c668ca7848b1aa5d231aa4423b3f4e2ceb98d8548fd91f95ed60723ac6/kedro_viz-11.1.0.tar.gz", hash = "sha256:fb5d01c0ab6fcaa80987d480a8fd14b4ce5a6dd2fc85b54debadc2fc16ca8c09", size = 1775632, upload-time = "2025-07-08T14:43:35.614Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/72/58/f5441a3438a1cd1f6de01eb2b24b161badfd244dcb93e1216561b8b674a7/kedro_viz-10.0.0-py3-none-any.whl", hash = "sha256:91bc9412e716b0118468ea257cadda17ebca1b09ee63d5ece6803df93709a07c", size = 2454920, upload-time = "2024-09-19T16:48:00.875Z" },
+    { url = "https://files.pythonhosted.org/packages/19/69/94ad402bb71e79c431842f455d91e9bb36da415044815544e3f727ec1bf8/kedro_viz-11.1.0-py3-none-any.whl", hash = "sha256:4806e72294ee2914c0286f9f770b847986931e195ea2ffd5fa5cc31760331f09", size = 1808868, upload-time = "2025-07-08T14:43:34.215Z" },
 ]
 
 [[package]]
@@ -1387,7 +1405,7 @@ name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ptyprocess" },
+    { name = "ptyprocess", marker = "sys_platform != 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/92/cc564bf6381ff43ce1f4d06852fc19a2f11d180f23dc32d9588bee2f149d/pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f", size = 166450, upload-time = "2023-11-25T09:07:26.339Z" }
 wheels = [
@@ -2051,6 +2069,15 @@ wheels = [
 ]
 
 [[package]]
+name = "tomli-w"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/19/75/241269d1da26b624c0d5e110e8149093c759b7a286138f4efd61a60e75fe/tomli_w-1.2.0.tar.gz", hash = "sha256:2dd14fac5a47c27be9cd4c976af5a12d87fb1f0b4512f81d69cce3b35ae25021", size = 7184, upload-time = "2025-01-15T12:07:24.262Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c7/18/c86eb8e0202e32dd3df50d43d7ff9854f8e0603945ff398974c1d91ac1ef/tomli_w-1.2.0-py3-none-any.whl", hash = "sha256:188306098d013b691fcadc011abd66727d3c414c571bb01b1a174ba8c983cf90", size = 6675, upload-time = "2025-01-15T12:07:22.074Z" },
+]
+
+[[package]]
 name = "toposort"
 version = "1.10"
 source = { registry = "https://pypi.org/simple" }
@@ -2199,18 +2226,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d1/43/d7e8b71f6c21ff813ee8da1006f89b6c7fff047fb4c8b16ceb5e840599c5/watchfiles-1.1.1-pp39-pypy39_pp73-macosx_11_0_arm64.whl", hash = "sha256:3dbd8cbadd46984f802f6d479b7e3afa86c42d13e8f0f322d669d79722c8ec34", size = 397286, upload-time = "2025-10-14T15:06:16.177Z" },
     { url = "https://files.pythonhosted.org/packages/1f/5d/884074a5269317e75bd0b915644b702b89de73e61a8a7446e2b225f45b1f/watchfiles-1.1.1-pp39-pypy39_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5524298e3827105b61951a29c3512deb9578586abf3a7c5da4a8069df247cccc", size = 451768, upload-time = "2025-10-14T15:06:18.266Z" },
     { url = "https://files.pythonhosted.org/packages/17/71/7ffcaa9b5e8961a25026058058c62ec8f604d2a6e8e1e94bee8a09e1593f/watchfiles-1.1.1-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4b943d3668d61cfa528eb949577479d3b077fd25fb83c641235437bc0b5bc60e", size = 458561, upload-time = "2025-10-14T15:06:19.323Z" },
-]
-
-[[package]]
-name = "watchgod"
-version = "0.8.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "anyio" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/e8/6e/3904af0715e03fc5b2636cb8cf8b0eabc45b1f2cf6e4cf8453ddb6d23042/watchgod-0.8.2.tar.gz", hash = "sha256:cb11ff66657befba94d828e3b622d5fb76f22fbda1376f355f3e6e51e97d9450", size = 13865, upload-time = "2022-04-01T12:18:05.163Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/9f/60/cfd9150167cb8ec0ac07642fe1383d27300729e0b2b877ff89cb0862bbeb/watchgod-0.8.2-py3-none-any.whl", hash = "sha256:2f3e8137d98f493ff58af54ea00f4d1433a6afe2ed08ab331a657df468c6bfce", size = 12255, upload-time = "2022-04-01T12:18:03.879Z" },
 ]
 
 [[package]]

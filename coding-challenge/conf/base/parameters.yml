@@ -1,1 +1,28 @@
-check_empty_sales_log: True
+customer_1001_id: "1001"
+customer_1002_id: "1002"
+customer_1003_id: "1003"
+
+defaults:
+  partition_key: target_date
+  first_day_no_stockout: true
+
+stockout:
+  min_sales_trigger: 1.0  # >0 Verkäufe
+
+quality:
+  check_empty_sales_log: True
+  enforce_non_negative: true
+  date_min: "2018-01-01"
+  date_max: "2035-12-31"
+  id_prefix_check: true  # 9-stellig, Präfix = Kundennummer
+
+parsing:
+  galaxy_address_regex:
+    postal_city: "(?P<postal_code>\\d{4,5})\\s+(?P<city>[^,\\n]+)"
+
+key_cols:
+  sales: ["target_date", "number_store", "number_product", "_customer_id"]
+  deliveries: ["target_date", "number_store", "number_product", "_customer_id"]
+  products: ["number_product", "_customer_id"]
+  stores: ["number_store", "_customer_id"]
+

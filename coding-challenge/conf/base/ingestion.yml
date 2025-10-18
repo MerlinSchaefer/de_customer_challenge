@@ -1,0 +1,58 @@
+erps:
+  cosmos:
+    format: csv
+    encoding: cp1252
+    delimiter: ";"
+    decimal_comma: true
+    columns:
+      sales:      { date: "Datum", store: "Kunde",        product: "Artikel", qty: "VK-Menge", amount: "VK-Betrag" }
+      deliveries: { date: "Datum", store: "Kunde_Nummer", product: "ArtNr",   qty: "LI-Menge", batch: "Lieferzeit" }
+      products:   { product: "ArtNr", name: "Bezeichnung", group: "Artikelgruppe", price: "Preis", moq: "Mindestbestellmenge" }
+      stores:     { store: "Nummer", name: "Name", street: "Straße", postal_code: "PLZ", city: "Ort", country: "Land", state: "Bundesland" }
+
+  galaxy:
+    format: json
+    encoding: utf8
+    decimal_comma: false
+    deliveries_sales:
+      root_date: "Datum"
+      root_store: "FilialNummer"
+      history_array: "ArtikelHistory"
+      fields:
+        product: "ArtikelNummer"
+        sales_qty: "Verkaufsmenge"
+        delivery_qty: "Liefermenge"
+        preorder_qty: "Kundenbestellmenge"
+        delivery_batch: "LieferNummer"
+        first_sale_time: "UhrzeitErsterVk"
+        last_sale_time: "UhrzeitLetzterVk"
+    prices:   { product: "ArtikelNummer", price: "Artikelpreis" }
+    products: { product: "ArtikelNummer", name: "ArtikelName", group: "Artikelgruppe",
+                unit: "ArtikelMasseinheit", moq_unit: "BestellMindestMasseinheit",
+                moq: "BestellMindestEinheit", shelf_life_days: "ArtikelHaltbarTage" }
+    stores:   { store: "FilialNummer", name: "FilialName", address_multiline: "FilialAnschrift" }
+
+customers:
+  "1001":
+    erp: cosmos
+    paths:
+      sales: ".../1001/00_sales/"
+      deliveries: ".../1001/00_deliveries/"
+      products: ".../1001/00_products/"
+      stores: ".../1001/00_stores/"
+      mapping_product: ".../1001/01_mappings/mapping_product.parquet"
+      mapping_store:   ".../1001/01_mappings/mapping_store.parquet"
+
+  "1002":
+    erp: cosmos
+    paths: { ... }
+
+  "1003":
+    erp: galaxy
+    paths:
+      deliveries_sales: ".../1003/00_deliveries_sales/"
+      prices:           ".../1003/00_prices/"
+      products:         ".../1003/00_products/"
+      stores:           ".../1003/00_stores/"
+      mapping_product:  ".../1003/01_mappings/mapping_product.parquet"
+      mapping_store:    ".../1003/01_mappings/mapping_store.parquet"
