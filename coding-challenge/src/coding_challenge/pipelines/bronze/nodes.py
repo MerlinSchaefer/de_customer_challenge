@@ -48,20 +48,31 @@ def join_logs(*msgs: str) -> str:
 # COSMOS (1001/1002)
 
 def normalize_cosmos_sales_bronze(raw_sales: Any, ingestion_config: dict, customer_id: str) -> pd.DataFrame:
+    # keep filenames when IncrementalDataSet returns dict{filename: df}
     df = _concat_incremental_with_source(raw_sales)
-    if df.empty:
-        return pd.DataFrame(columns=["target_date", "number_store", "number_product", "sales_qty", "_customer_id"])
+    if df is None or df.empty:
+        return pd.DataFrame(columns=["target_date","number_store","number_product","sales_qty","_customer_id","_source_file"])
+
     cols = ingestion_config["erps"]["cosmos"]["columns"]["sales"]
     df = df.rename(columns={
         cols["date"]: "target_date",
         cols["store"]: "number_store",
         cols["product"]: "number_product",
         cols["qty"]: "sales_qty",
-    })
-    df["sales_qty"] = pd.to_numeric(df["sales_qty"], errors="coerce").fillna(0.0)
-    df["target_date"] = pd.to_datetime(df["target_date"], errors="coerce").dt.date
-    df["_customer_id"] = customer_id
-    return df[["target_date", "number_store", "number_product", "sales_qty", "_customer_id"]]
+    }).copy()
+
+    # normalize types
+    df["target_date"] = pd.to_datetime(df["target_date"], format="%Y-%m-%d", errors="raise").dt.normalize()
+    df["number_store"]  = df["number_store"].astype("string")
+    df["number_product"]= df["number_product"].astype("string")
+    df["sales_qty"]     = pd.to_numeric(df["sales_qty"], errors="raise").fillna(0.0)
+
+    df["_customer_id"]  = customer_id
+    # ensure column exists even if raw didn’t provide dict filenames
+    if "_source_file" not in df.columns:
+        df["_source_file"] = pd.NA
+
+    return df[["target_date","number_store","number_product","sales_qty","_customer_id","_source_file"]]
 
 
 def normalize_cosmos_deliveries_bronze(raw_deliveries: Any, ingestion_config: dict, customer_id: str) -> pd.DataFrame:
@@ -76,8 +87,8 @@ def normalize_cosmos_deliveries_bronze(raw_deliveries: Any, ingestion_config: di
         cols["qty"]: "delivery_qty",
         cols["batch"]: "delivery_batch",
     })
-    df["delivery_qty"] = pd.to_numeric(df["delivery_qty"], errors="coerce").fillna(0.0)
-    df["target_date"] = pd.to_datetime(df["target_date"], errors="coerce").dt.date
+    df["delivery_qty"] = pd.to_numeric(df["delivery_qty"], errors="raise").fillna(0.0)
+    df["target_date"] = pd.to_datetime(df["target_date"], format="%Y-%m-%d", errors="raise").dt.normalize()
     df["_customer_id"] = customer_id
     return df[["target_date", "number_store", "number_product", "delivery_qty", "delivery_batch", "_customer_id"]]
 
@@ -94,8 +105,8 @@ def normalize_cosmos_products_bronze(raw_products: Any, ingestion_config: dict, 
         cols["price"]: "price",
         cols["moq"]: "moq",
     })
-    df["price"] = pd.to_numeric(df["price"], errors="coerce")
-    df["moq"] = pd.to_numeric(df["moq"], errors="coerce").fillna(0).astype("Int64")
+    df["price"] = pd.to_numeric(df["price"], errors="raise")
+    df["moq"] = pd.to_numeric(df["moq"], errors="raise").fillna(0).astype("Int64")
     df["_customer_id"] = customer_id
     return df[["number_product", "product_name", "product_group", "price", "moq", "_customer_id"]]
 
@@ -115,7 +126,11 @@ def normalize_cosmos_stores_bronze(raw_stores: Any, ingestion_config: dict, cust
         cols["state"]: "state",
     })
     df["_customer_id"] = customer_id
-    df["store_address"] = df[["street", "postal_code", "city"]].fillna("").agg(" – ".join, axis=1)
+    # make address parts strings (preserve leading zeros)
+    for col in ["street", "postal_code", "city"]:
+        df[col] = df[col].astype("string").fillna("")
+
+    df["store_address"] = df[["street", "postal_code", "city"]].agg(" – ".join, axis=1)
     return df[["number_store", "store_name", "street", "postal_code", "city", "country", "state", "store_address", "_customer_id"]]
 
 
@@ -123,105 +138,355 @@ def normalize_cosmos_stores_bronze(raw_stores: Any, ingestion_config: dict, cust
 # GALAXY (1003)
 
 def flatten_galaxy_deliveries_sales_bronze(raw_deliv_sales: Any, ingestion_config: dict, customer_id: str) -> pd.DataFrame:
-    df_raw = _concat_incremental_with_source(raw_deliv_sales)
-    if df_raw.empty:
-        return pd.DataFrame(columns=["target_date", "number_store", "number_product", "sales_qty", "delivery_qty", "delivery_batch", "_customer_id"])
+    """Assumes structure: records -> Filiale (list[dict]) -> each has {Datum, FilialNummer, ArtikelHistory[list[dict]]}."""
+    # Accept IncrementalDataSet dict or a DataFrame
+    if isinstance(raw_deliv_sales, dict):
+        parts = []
+        for fname, d in raw_deliv_sales.items():
+            if d is None or d.empty:
+                continue
+            tmp = d.copy()
+            tmp["_source_file"] = fname
+            parts.append(tmp)
+        df0 = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
+    else:
+        df0 = raw_deliv_sales.copy()
+
+    if df0 is None or df0.empty:
+        return pd.DataFrame(columns=[
+            "target_date","number_store","number_product",
+            "sales_qty","delivery_qty","delivery_batch",
+            "_customer_id","_source_file"
+        ])
 
     cfg = ingestion_config["erps"]["galaxy"]["deliveries_sales"]
-    root_date, root_store, hist_key = cfg["root_date"], cfg["root_store"], cfg["history_array"]
-    f = cfg["fields"]
+    filiale_key = cfg.get("filiale_array", "Filiale")       # assume present
+    root_date = cfg["root_date"]                             # "Datum"
+    root_store = cfg["root_store"]                           # "FilialNummer"
+    hist_key = cfg["history_array"]                          # "ArtikelHistory"
+    f = cfg["fields"]                                        # product/sales_qty/delivery_qty/delivery_batch
 
-    # explode ArtikelHistory
-    df = df_raw.explode(hist_key, ignore_index=True)
-    hist = pd.json_normalize(df[hist_key])
+    # 1) explode Filiale
+    df0 = df0.explode(filiale_key, ignore_index=True)
+    fil = pd.json_normalize(df0[filiale_key])
+    if "_source_file" in df0.columns:
+        fil["_source_file"] = df0["_source_file"].values
 
+    # 2) explode ArtikelHistory
+    fil = fil.explode(hist_key, ignore_index=True)
+    hist = pd.json_normalize(fil[hist_key])
+
+    # 3) map fields → bronze schema
     out = pd.DataFrame({
-        "target_date": pd.to_datetime(df[root_date], errors="coerce").dt.date,
-        "number_store": df[root_store],
-        "number_product": hist.get(f["product"]),
-        "sales_qty": pd.to_numeric(hist.get(f["sales_qty"]), errors="coerce").fillna(0.0),
-        "delivery_qty": pd.to_numeric(hist.get(f["delivery_qty"]), errors="coerce").fillna(0.0),
+        "target_date": pd.to_datetime(fil[root_date], errors="raise", dayfirst=True).dt.date,
+        "number_store": fil[root_store].astype("string"),
+        "number_product": hist[f["product"]].astype("string"),
+        "sales_qty": pd.to_numeric(hist[f["sales_qty"]], errors="raise").fillna(0.0),
+        "delivery_qty": pd.to_numeric(hist[f["delivery_qty"]], errors="raise").fillna(0.0),
         "delivery_batch": hist.get(f.get("delivery_batch", ""), pd.Series([None] * len(hist))),
+        "_source_file": fil.get("_source_file", pd.Series([pd.NA] * len(fil))),
     })
-    out["_customer_id"] = customer_id
-    return out[["target_date", "number_store", "number_product", "sales_qty", "delivery_qty", "delivery_batch", "_customer_id"]]
 
+    out["_customer_id"] = customer_id
+
+    return out[[
+        "target_date","number_store","number_product",
+        "sales_qty","delivery_qty","delivery_batch",
+        "_customer_id","_source_file"
+    ]]
 
 def normalize_galaxy_prices_bronze_daily(raw_prices: Any, ingestion_config: dict, customer_id: str) -> pd.DataFrame:
-    df = _concat_incremental_with_source(raw_prices)
-    if df.empty:
+    df0 = _concat_incremental_with_source(raw_prices)
+    if df0 is None or df0.empty:
         return pd.DataFrame(columns=["target_date", "number_product", "price", "_customer_id"])
 
-    f = ingestion_config["erps"]["galaxy"]["prices"]
-    df = df.rename(columns={f["product"]: "number_product", f["price"]: "price"}).copy()
+    f = ingestion_config["erps"]["galaxy"]["prices"]  # {"wrapper":"Verkaufspreise","product":"ArtikelNummer","price":"ArtikelPreis"}
+    wrapper = f.get("wrapper", "Verkaufspreise")
+    prod_key, price_key = f["product"], f["price"]
 
-    # Wenn target_date in JSON vorhanden ist, übernehmen; sonst NaT (wird später ggf. behandelt)
-    if "target_date" in df.columns:
-        df["target_date"] = pd.to_datetime(df["target_date"], errors="coerce").dt.date
-    else:
-        df["target_date"] = pd.NaT  # bleibt leer, bis im Silver ggf. anders gelöst
+    items = []
 
-    df["price"] = pd.to_numeric(df["price"], errors="coerce")
-    df["_customer_id"] = customer_id
-    return df[["target_date", "number_product", "price", "_customer_id"]]
+    if wrapper in df0.columns:
+        # NEW: robust per-cell extraction
+        for v in df0[wrapper].dropna():
+            if isinstance(v, list):
+                items.extend(v)
+            elif isinstance(v, dict):
+                # case: directly a price object
+                if prod_key in v and price_key in v:
+                    items.append(v)
+                # case: nested again under wrapper
+                elif wrapper in v and isinstance(v[wrapper], list):
+                    items.extend(v[wrapper])
+                # else: ignore
+            elif isinstance(v, str):
+                # try to parse JSON string
+                try:
+                    import json
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        items.extend(parsed)
+                    elif isinstance(parsed, dict):
+                        if prod_key in parsed and price_key in parsed:
+                            items.append(parsed)
+                        elif wrapper in parsed and isinstance(parsed[wrapper], list):
+                            items.extend(parsed[wrapper])
+                except Exception:
+                    pass
+
+    # fallback: look in any column for a dict with wrapper
+    if not items:
+        for col in df0.columns:
+            for v in df0[col].dropna():
+                if isinstance(v, dict) and wrapper in v and isinstance(v[wrapper], list):
+                    items.extend(v[wrapper])
+
+    if not items:
+        raise KeyError(
+            f"Galaxy prices: could not extract items from '{wrapper}'. "
+            f"Columns: {list(df0.columns)}; first_row_type={type(df0.iloc[0,0]).__name__}"
+        )
+
+    inner = pd.DataFrame(items)
+
+    if prod_key not in inner.columns or price_key not in inner.columns:
+        raise KeyError(f"Galaxy prices: missing '{prod_key}'/'{price_key}' in extracted items. Got: {list(inner.columns)}")
+
+    out = pd.DataFrame({
+        "number_product": inner[prod_key].astype("string"),
+        "price": pd.to_numeric(inner[price_key].astype(str).str.replace(",", ".", regex=False), errors="raise"),
+        "target_date": pd.NaT,
+        "_customer_id": customer_id,
+    })
+    return out[["target_date", "number_product", "price", "_customer_id"]]
+
+
 
 
 def normalize_galaxy_products_bronze(raw_products: Any, ingestion_config: dict, customer_id: str) -> pd.DataFrame:
-    df = _concat_incremental_with_source(raw_products)
-    if df.empty:
+    df0 = _concat_incremental_with_source(raw_products)
+    if df0 is None or df0.empty:
         return pd.DataFrame(columns=["number_product", "product_name", "product_group", "moq", "_customer_id"])
+
     f = ingestion_config["erps"]["galaxy"]["products"]
-    df = df.rename(columns={
-        f["product"]: "number_product",
-        f["name"]: "product_name",
-        f["group"]: "product_group",
-        f["moq"]: "moq",
+    wrapper = "Artikel"  # from your JSON sample
+
+    # --- extract inner list under "Artikel" from whatever shape we got ---
+    items = []
+
+    # case A: "Artikel" is a column
+    if wrapper in df0.columns:
+        for v in df0[wrapper].dropna():
+            if isinstance(v, list):
+                items.extend(v)
+            elif isinstance(v, dict):
+                # already a single product dict → append
+                items.append(v)
+            elif isinstance(v, str):
+                # try parse JSON string
+                try:
+                    import json
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        items.extend(parsed)
+                    elif isinstance(parsed, dict):
+                        items.append(parsed)
+                except Exception:
+                    pass
+
+    # case B: loader put the dict in a single cell: {"Artikel": [ ... ]}
+    if not items:
+        for col in df0.columns:
+            for v in df0[col].dropna():
+                if isinstance(v, dict) and wrapper in v and isinstance(v[wrapper], list):
+                    items.extend(v[wrapper])
+
+    if not items:
+        raise KeyError(
+            f"Galaxy products: could not extract items from '{wrapper}'. "
+            f"Columns: {list(df0.columns)}; first_row_type={type(df0.iloc[0,0]).__name__}"
+        )
+
+    inner = pd.DataFrame(items)
+
+    # --- build output explicitly using config keys ---
+    prod_key = f["product"]        # "ArtikelNummer"
+    name_key = f["name"]           # "ArtikelName"
+    group_key = f.get("group")     # "Artikelgruppe" (optional)
+    moq_key = f.get("moq")         # "BestellMindestEinheit"
+
+    # required columns
+    missing = [k for k in [prod_key, name_key] if k not in inner.columns]
+    if missing:
+        raise KeyError(f"Galaxy products: missing required columns {missing}. Got: {list(inner.columns)}")
+
+    out = pd.DataFrame({
+        "number_product": inner[prod_key].astype("string"),
+        "product_name": inner[name_key].astype("string"),
+        "product_group": inner[group_key].astype("string") if group_key and group_key in inner.columns else pd.Series([pd.NA] * len(inner), dtype="string"),
     })
-    df["moq"] = pd.to_numeric(df["moq"], errors="coerce").fillna(0).astype("Int64")
-    df["_customer_id"] = customer_id
-    return df[["number_product", "product_name", "product_group", "moq", "_customer_id"]]
+
+    # MOQ: strings like "1.000" → 1000 or 1?
+    # Typical ERP pattern here is thousand-separators with dot. MOQ is an integer.
+    # Strategy: remove all non-digits and parse as Int64. If empty → 0.
+    if moq_key and moq_key in inner.columns:
+        out["moq"] = pd.to_numeric(inner[moq_key], errors="raise").fillna(0).astype("Int64")
+    else:
+        out["moq"] = pd.Series([0] * len(inner), dtype="Int64")
+
+    out["_customer_id"] = customer_id
+
+    return out[["number_product", "product_name", "product_group", "moq", "_customer_id"]]
+
 
 
 def parse_galaxy_stores_bronze(raw_stores: Any, ingestion_config: dict, customer_id: str) -> pd.DataFrame:
-    df = _concat_incremental_with_source(raw_stores)
-    if df.empty:
-        return pd.DataFrame(columns=["number_store", "store_name", "street", "postal_code", "city", "country", "state", "store_address", "_customer_id"])
+    df0 = _concat_incremental_with_source(raw_stores)
+    if df0 is None or df0.empty:
+        return pd.DataFrame(columns=[
+            "number_store", "store_name", "street", "postal_code", "city",
+            "country", "state", "store_address", "_customer_id"
+        ])
 
-    s = ingestion_config["erps"]["galaxy"]["stores"]
-    df = df.rename(columns={s["store"]: "number_store", s["name"]: "store_name", s["address_multiline"]: "address_ml"}).copy()
+    s_cfg = ingestion_config["erps"]["galaxy"]["stores"]
+    wrapper = "Filialliste"  # from your JSON sample
+    store_key = s_cfg["store"]               # "FilialNummer"
+    name_key  = s_cfg["name"]                # "FilialName"
+    addr_key  = s_cfg["address_multiline"]   # "FilialAnschrift"
 
-    # simple address parsing
+    # --- unwrap Filialliste robustly ---
+    items = []
+    if wrapper in df0.columns:
+        for v in df0[wrapper].dropna():
+            if isinstance(v, list):
+                items.extend(v)
+            elif isinstance(v, dict):
+                items.append(v)
+            elif isinstance(v, str):
+                try:
+                    import json
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list): items.extend(parsed)
+                    elif isinstance(parsed, dict): items.append(parsed)
+                except Exception:
+                    pass
+    if not items:
+        # fallback: dict in a single cell with {"Filialliste":[...]}
+        for col in df0.columns:
+            for v in df0[col].dropna():
+                if isinstance(v, dict) and wrapper in v and isinstance(v[wrapper], list):
+                    items.extend(v[wrapper])
+    if not items:
+        raise KeyError(
+            f"Galaxy stores: could not extract items from '{wrapper}'. "
+            f"Columns: {list(df0.columns)}; first_row_type={type(df0.iloc[0,0]).__name__}"
+        )
+
+    inner = pd.DataFrame(items)
+
+    # --- select required fields ---
+    missing = [k for k in [store_key, name_key, addr_key] if k not in inner.columns]
+    if missing:
+        raise KeyError(f"Galaxy stores: missing required columns {missing}. Got: {list(inner.columns)}")
+
+    tmp = pd.DataFrame({
+        "number_store": inner[store_key].astype("string"),
+        "store_name": inner[name_key].astype("string"),
+        "address_ml": inner[addr_key].astype("string"),
+    })
+
+    # --- parse multiline address ---
+    import re
     streets, postals, cities, countries, states = [], [], [], [], []
-    for addr in df["address_ml"].fillna(""):
+    for addr in tmp["address_ml"].fillna(""):
         lines = [ln.strip() for ln in str(addr).split("\n") if ln.strip()]
-        streets.append(lines[0] if len(lines) > 0 else None)
 
-        pc, ct = None, None
+        # naive defaults by position if available
+        street = lines[0] if len(lines) > 0 else None
+        postal = None
+        city   = None
+        country= lines[3] if len(lines) > 3 else (lines[-1] if len(lines) >= 2 else None)
+        state  = lines[4] if len(lines) > 4 else (lines[2] if len(lines) > 2 else None)
+
+        # try to detect a postal code line (4–5 digits)
         for ln in lines:
-            # einfache Heuristik: "PLZ Stadt"
-            m = pd.Series(ln).str.extract(r"(?P<postal>\d{4,5})\s+(?P<city>.+)")
-            if not m.isna().all(axis=None):
-                pc = m.iloc[0]["postal"]
-                ct = m.iloc[0]["city"]
+            m = re.fullmatch(r"(\d{4,5})", ln)
+            if m:
+                postal = m.group(1)
+                # city likely the line after postal if exists
+                idx = lines.index(ln)
+                if idx + 1 < len(lines):
+                    city = lines[idx + 1]
                 break
-        postals.append(pc); cities.append(ct)
-        countries.append(lines[-1] if len(lines) >= 2 else None)
-        states.append(None)
+
+        streets.append(street)
+        postals.append(postal)
+        cities.append(city)
+        countries.append(country)
+        states.append(state)
 
     out = pd.DataFrame({
-        "number_store": df["number_store"],
-        "store_name": df["store_name"],
-        "street": streets,
-        "postal_code": postals,
-        "city": cities,
-        "country": countries,
-        "state": states,
+        "number_store": tmp["number_store"],
+        "store_name": tmp["store_name"],
+        "street": pd.Series(streets, dtype="string"),
+        "postal_code": pd.Series(postals, dtype="string"),
+        "city": pd.Series(cities, dtype="string"),
+        "country": pd.Series(countries, dtype="string"),
+        "state": pd.Series(states, dtype="string"),
     })
+
+    # build address string (safe string types)
+    for c in ["street", "postal_code", "city"]:
+        out[c] = out[c].astype("string").fillna("")
+    out["store_address"] = out[["street", "postal_code", "city"]].agg(" – ".join, axis=1)
+
     out["_customer_id"] = customer_id
-    out["store_address"] = out[["street", "postal_code", "city"]].fillna("").agg(" – ".join, axis=1)
-    return out[["number_store", "store_name", "street", "postal_code", "city", "country", "state", "store_address", "_customer_id"]]
+    return out[[
+        "number_store", "store_name", "street", "postal_code", "city",
+        "country", "state", "store_address", "_customer_id"
+    ]]
 
+def enrich_galaxy_products_with_prices_bronze(
+    products_1003: pd.DataFrame,
+    prices_1003: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Join 1003 product master with 1003 prices on (_customer_id, number_product).
+    Keep existing price from products if present; fill from prices where missing.
+    """
+    if products_1003 is None or products_1003.empty:
+        return pd.DataFrame(columns=["number_product","product_name","product_group","price","moq","_customer_id"])
 
+    p = products_1003.copy()
+    p["number_product"] = p["number_product"].astype("string")
+
+    if prices_1003 is None or prices_1003.empty:
+        # nothing to enrich, return as-is (ensure price column exists)
+        if "price" not in p.columns:
+            p["price"] = pd.NA
+        return p[["number_product","product_name","product_group","price","moq","_customer_id"]]
+
+    pr = prices_1003.copy()
+    pr["number_product"] = pr["number_product"].astype("string")
+    # prices dataset already parsed numeric; if not, enforce here:
+    pr["price"] = pd.to_numeric(pr["price"], errors="raise")
+
+    out = p.merge(
+        pr[["number_product","_customer_id","price"]],
+        on=["number_product","_customer_id"],
+        how="left",
+        suffixes=("", "_from_prices"),
+        validate="m:1",
+    )
+
+    # coalesce: keep product.price if present, otherwise take price_from_prices
+    if "price" not in out.columns:
+        out["price"] = pd.NA
+    if "price_from_prices" in out.columns:
+        out["price"] = out["price"].where(out["price"].notna(), out["price_from_prices"])
+        out.drop(columns=["price_from_prices"], inplace=True)
+
+    return out[["number_product","product_name","product_group","price","moq","_customer_id"]]
 
 # merge (kundenübergreifend)
 def concat_frames_with_meta(*dfs: pd.DataFrame) -> pd.DataFrame:
@@ -231,17 +496,32 @@ def concat_frames_with_meta(*dfs: pd.DataFrame) -> pd.DataFrame:
 
     df = pd.concat(frames, ignore_index=True).drop_duplicates()
 
+    # ---- Canonical dtypes for Bronze ----
+    # string-like ids / labels
+    for col in ["number_store", "number_product", "delivery_batch", "_customer_id", "_source_file"]:
+        if col in df.columns:
+            df[col] = df[col].astype("string")
+
+    # dates → pandas datetime64[ns] (Parquet-friendly)
+    if "target_date" in df.columns:
+        df["target_date"] = pd.to_datetime(df["target_date"], errors="raise").dt.normalize()
+
+    # numeric measures
+    for col in ["sales_qty", "delivery_qty", "return_qty", "price", "moq"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="raise")
+
     # single batch timestamp for the merge
     df["_ingest_ts"] = pd.Timestamp.utcnow()
 
     # compute row hash if we can identify keys
-    def _pick_key_cols(df: pd.DataFrame) -> list[str]:
+    def _pick_key_cols(df_: pd.DataFrame) -> list[str]:
         rules = [
             ["target_date", "number_store", "number_product", "_customer_id"],  # daily fact-like
             ["number_product", "_customer_id"],  # products
             ["number_store", "_customer_id"],    # stores
         ]
-        cols = set(map(str.lower, df.columns))
+        cols = set(map(str.lower, df_.columns))
         for rule in rules:
             if all(c.lower() in cols for c in rule):
                 return rule

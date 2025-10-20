@@ -8,6 +8,7 @@ from .nodes import (
     normalize_cosmos_products_bronze, normalize_cosmos_stores_bronze,
     flatten_galaxy_deliveries_sales_bronze, normalize_galaxy_prices_bronze_daily,
     normalize_galaxy_products_bronze, parse_galaxy_stores_bronze,
+    enrich_galaxy_products_with_prices_bronze,
     concat_frames_with_meta,
 )
 
@@ -82,6 +83,13 @@ def create_pipeline(**kwargs) -> Pipeline:
         node(parse_galaxy_stores_bronze,
              inputs=dict(raw_stores="raw_1003_stores", ingestion_config="ingestion_config", customer_id="params:customer_1003_id"),
              outputs="bronze.stores_1003", name="bronze_galaxy_1003_stores"),
+        # enrich 1003 products with its prices
+        node(
+            enrich_galaxy_products_with_prices_bronze,
+            inputs=["bronze.products_1003", "bronze.prices_1003"],
+            outputs="bronze.products_1003_enriched",
+            name="bronze_enrich_1003_products_with_prices",
+        ),
     ]
 
     # merge kundenübergreifend (Bronze-All)
@@ -94,10 +102,12 @@ def create_pipeline(**kwargs) -> Pipeline:
              inputs=["bronze.deliveries_1001", "bronze.deliveries_1002", "bronze.deliveries_sales_1003"],
              outputs="bronze.deliveries_all",
              name="merge_bronze_deliveries_all"),
-        node(concat_frames_with_meta,
-             inputs=["bronze.products_1001", "bronze.products_1002", "bronze.products_1003"],
-             outputs="bronze.products_all",
-             name="merge_bronze_products_all"),
+        node(
+            concat_frames_with_meta,
+            inputs=["bronze.products_1001", "bronze.products_1002", "bronze.products_1003_enriched"],
+            outputs="bronze.products_all",
+            name="merge_bronze_products_all",
+        ),
         node(concat_frames_with_meta,
              inputs=["bronze.stores_1001", "bronze.stores_1002", "bronze.stores_1003"],
              outputs="bronze.stores_all",
