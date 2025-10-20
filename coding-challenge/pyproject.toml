@@ -1,3 +1,31 @@
+[project]
+name = "coding-challenge"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "==3.9.23"
+dependencies = [
+    "black~=22.0",
+    "flake8>=3.7.9,<5.0",
+    "ipython>=7.31.1,<8.0 ; python_full_version < '3.8'",
+    "ipython~=8.10 ; python_full_version >= '3.8'",
+    "isort~=5.0",
+    "jupyter~=1.0",
+    "jupyterlab~=3.0,<3.6.0",
+    "jupyterlab-server>=2.11.1,<2.16.0",
+    "kedro~=0.18.10",
+    "kedro-telemetry>=0.2.0",
+    "kedro-viz>=11.1.0",
+    "matplotlib>=3.9.4",
+    "nbstripout~=0.4",
+    "numpy~=1.24.2",
+    "pandas>=2.1.0",
+    "pyarrow>=21.0.0",
+    "pytest~=7.2",
+    "pytest-cov~=3.0",
+    "pytest-mock>=1.7.1,<2.0",
+]
+
 [tool.kedro]
 package_name = "coding_challenge"
 project_name = "coding challenge"

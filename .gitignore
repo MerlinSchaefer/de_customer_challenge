@@ -165,3 +165,6 @@ data/
 
 # credentials
 credentials.yml
+
+# globals vars (including path)
+globals.yml
