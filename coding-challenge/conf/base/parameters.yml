@@ -26,3 +26,8 @@ key_cols:
   products: ["number_product", "_customer_id"]
   stores: ["number_store", "_customer_id"]
 
+delivery_to_sales_map:
+  - _customer_id: "1001"
+    number_product_delivery: "29"
+    number_product_sales: "72"
+    factor: 12

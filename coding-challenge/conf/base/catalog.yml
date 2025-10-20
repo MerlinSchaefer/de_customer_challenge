@@ -89,6 +89,21 @@ raw_1001_mapping_delivery2sales:
   type: pandas.ParquetDataSet
   filepath: ${filepath_prefix}/00_raw/customer_1001/01_mappings/mapping_delivery_to_sales.parquet
 
+raw_1002_mapping_product:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/00_raw/customer_1002/01_mappings/mapping_product.parquet
+
+raw_1002_mapping_store:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/00_raw/customer_1002/01_mappings/mapping_store.parquet
+
+raw_1003_mapping_product:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/00_raw/customer_1003/01_mappings/mapping_product.parquet
+
+raw_1003_mapping_store:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/00_raw/customer_1003/01_mappings/mapping_store.parquet
 
 # COSMOS (customer 1002); identische Struktur/Args
 raw_1002_sales:
@@ -151,14 +166,6 @@ raw_1002_stores:
   checkpoint:
     filepath: ${filepath_prefix}/00_raw/customer_1002/00_stores/CHECKPOINT
 
-raw_1002_mapping_product:
-  type: pandas.ParquetDataSet
-  filepath: ${filepath_prefix}/00_raw/customer_1002/01_mappings/mapping_product.parquet
-
-raw_1002_mapping_store:
-  type: pandas.ParquetDataSet
-  filepath: ${filepath_prefix}/00_raw/customer_1002/01_mappings/mapping_store.parquet
-
 
 # GALAXY (customer 1003)
 # deliveries + sales sind in einer JSON-Quelle (00_deliveries_sales) ; flatten später in Bronze
@@ -207,13 +214,6 @@ raw_1003_stores:
   checkpoint:
     filepath: ${filepath_prefix}/00_raw/customer_1003/00_stores/CHECKPOINT
 
-raw_1003_mapping_product:
-  type: pandas.ParquetDataSet
-  filepath: ${filepath_prefix}/00_raw/customer_1003/01_mappings/mapping_product.parquet
-
-raw_1003_mapping_store:
-  type: pandas.ParquetDataSet
-  filepath: ${filepath_prefix}/00_raw/customer_1003/01_mappings/mapping_store.parquet
 
 
 ## ETL

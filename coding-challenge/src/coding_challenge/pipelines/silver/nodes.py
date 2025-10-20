@@ -17,41 +17,26 @@ def _hash_rows(df: pd.DataFrame, key_cols: List[str]) -> pd.Series:
     return pd.util.hash_pandas_object(keys, index=False).astype("uint64")
 
 
-
-def union_mapping_product(
-    map_1001: pd.DataFrame, map_1002: pd.DataFrame, map_1003: pd.DataFrame
-) -> pd.DataFrame:
-    maps = [m for m in [map_1001, map_1002, map_1003] if m is not None and not m.empty]
+def union_mapping_product(m1, m2, m3):
+    maps = [m for m in [m1, m2, m3] if m is not None and not m.empty]
     if not maps:
-        return pd.DataFrame(columns=["id_product", "number_product", "_customer_id"])
+        return pd.DataFrame(columns=["id_product","number_product","_customer_id"])
     df = pd.concat(maps, ignore_index=True).drop_duplicates()
-
-    # enforce types
     df["id_product"] = pd.to_numeric(df["id_product"], errors="raise").astype("int64")
-    # important: we join on STRING number_product in Silver
     df["number_product"] = pd.to_numeric(df["number_product"], errors="raise").astype("int64").astype("string")
-
-    # derive customer id from id_product (first 4 digits like 1001)
     df["_customer_id"] = df["id_product"].astype(str).str.slice(0, 4)
+    return df[["id_product","number_product","_customer_id"]].drop_duplicates()
 
-    return df[["id_product", "number_product", "_customer_id"]].drop_duplicates()
-
-
-def union_mapping_store(
-    map_1001: pd.DataFrame, map_1002: pd.DataFrame, map_1003: pd.DataFrame
-) -> pd.DataFrame:
-    maps = [m for m in [map_1001, map_1002, map_1003] if m is not None and not m.empty]
+def union_mapping_store(m1, m2, m3):
+    maps = [m for m in [m1, m2, m3] if m is not None and not m.empty]
     if not maps:
-        return pd.DataFrame(columns=["id_store", "number_store", "_customer_id"])
+        return pd.DataFrame(columns=["id_store","number_store","_customer_id"])
     df = pd.concat(maps, ignore_index=True).drop_duplicates()
-
     df["id_store"] = pd.to_numeric(df["id_store"], errors="raise").astype("int64")
     df["number_store"] = pd.to_numeric(df["number_store"], errors="raise").astype("int64").astype("string")
-
-    # id_store format e.g. 10019xxxx → first 4 digits are customer_id ("1001")
     df["_customer_id"] = df["id_store"].astype(str).str.slice(0, 4)
+    return df[["id_store","number_store","_customer_id"]].drop_duplicates()
 
-    return df[["id_store", "number_store", "_customer_id"]].drop_duplicates()
 
 
 # -------- dimensions --------
