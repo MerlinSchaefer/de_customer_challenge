@@ -336,39 +336,31 @@ silver.sales_daily:
   save_args: { compression: snappy }
 
 # # ---------- GOLD (konsumbereit) ----------
-# gold.fact_daily_store_product:
-#   type: PartitionedDataset
-#   dataset: pandas.ParquetDataSet
-#   path: ${filepath_prefix}/30_gold/fact_daily_store_product
-#   filename_suffix: .parquet
-#   dataset_config:
-#     save_args:
-#       compression: snappy
+gold.fact_daily_store_product:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/30_gold/fact_daily_store_product.parquet
+  save_args: { compression: snappy }
 
-# gold.dim_product:
-#   type: pandas.ParquetDataSet
-#   filepath: ${filepath_prefix}/30_gold/dim_product.parquet
-#   save_args:
-#     compression: snappy
+gold.dim_product:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/30_gold/dim_product.parquet
+  save_args: { compression: snappy }
 
-# gold.dim_store:
-#   type: pandas.ParquetDataSet
-#   filepath: ${filepath_prefix}/30_gold/dim_store.parquet
-#   save_args:
-#     compression: snappy
+gold.dim_store:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/30_gold/dim_store.parquet
+  save_args: { compression: snappy }
 
-# gold.app_view_daily:
-#   type: pandas.ParquetDataSet
-#   filepath: ${filepath_prefix}/30_gold/app_view_daily.parquet
-#   save_args:
-#     compression: snappy
+# ========= VIEWS (auf Gold) =========
+views.features_ml_daily:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/30_gold/views/features_ml_daily.parquet
+  save_args: { compression: snappy }
 
-# gold.features_ml_daily:
-#   type: pandas.ParquetDataSet
-#   filepath: ${filepath_prefix}/30_gold/features_ml_daily.parquet
-#   save_args:
-#     compression: snappy
-
+views.app_view_daily:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/30_gold/views/app_view_daily.parquet
+  save_args: { compression: snappy }
 
 # ---------- MONITORING / LOGS (Text) ----------
 99_EmptySalesLog:
