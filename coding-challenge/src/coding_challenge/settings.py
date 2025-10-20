@@ -23,16 +23,18 @@ https://kedro.readthedocs.io/en/stable/kedro_project_setup/settings.html."""
 
 # Class that manages how configuration is loaded.
 from kedro.config import TemplatedConfigLoader
+
 CONFIG_LOADER_CLASS = TemplatedConfigLoader
 import os
+
 # Keyword arguments to pass to the `CONFIG_LOADER_CLASS` constructor.
 CONFIG_LOADER_ARGS = {
     "globals_pattern": "*globals.yml",
     "globals_dict": os.environ,
-      "config_patterns": {
-          "spark" : ["spark*/"],
-          "parameters": ["parameters*", "parameters*/**", "**/parameters*"],
-      }
+    "config_patterns": {
+        "spark": ["spark*/"],
+        "parameters": ["parameters*", "parameters*/**", "**/parameters*"],
+    },
 }
 
 # Class that manages Kedro's library components.

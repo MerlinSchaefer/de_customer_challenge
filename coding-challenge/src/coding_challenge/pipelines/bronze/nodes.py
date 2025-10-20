@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import Any, List, Optional
+from typing import Any
 
 
 def _concat_incremental_with_source(
@@ -511,7 +511,7 @@ def normalize_galaxy_products_bronze(
     f = ingestion_config["erps"]["galaxy"]["products"]
     wrapper = "Artikel"  # from your JSON sample
 
-    # --- extract inner list under "Artikel" from whatever shape we got ---
+    #  extract inner list under "Artikel" from whatever shape we got
     items = []
 
     # case A: "Artikel" is a column
@@ -554,7 +554,7 @@ def normalize_galaxy_products_bronze(
 
     inner = pd.DataFrame(items)
 
-    # --- build output explicitly using config keys ---
+    #  build output explicitly using config keys
     prod_key = f["product"]  # "ArtikelNummer"
     name_key = f["name"]  # "ArtikelName"
     group_key = f.get("group")  # "Artikelgruppe" (optional)
@@ -631,7 +631,7 @@ def parse_galaxy_stores_bronze(
     name_key = s_cfg["name"]  # "FilialName"
     addr_key = s_cfg["address_multiline"]  # "FilialAnschrift"
 
-    # --- unwrap Filialliste robustly ---
+    #  unwrap Filialliste robustly
     items = []
     if wrapper in df0.columns:
         for v in df0[wrapper].dropna():
@@ -668,7 +668,7 @@ def parse_galaxy_stores_bronze(
 
     inner = pd.DataFrame(items)
 
-    # --- select required fields ---
+    #  select required fields
     missing = [k for k in [store_key, name_key, addr_key] if k not in inner.columns]
     if missing:
         raise KeyError(
@@ -683,7 +683,7 @@ def parse_galaxy_stores_bronze(
         }
     )
 
-    # --- parse multiline address ---
+    # parse multiline address
     import re
 
     streets, postals, cities, countries, states = [], [], [], [], []
@@ -844,7 +844,7 @@ def concat_frames_with_meta(*dfs: pd.DataFrame) -> pd.DataFrame:
 
     df = pd.concat(frames, ignore_index=True).drop_duplicates()
 
-    # ---- Canonical dtypes for Bronze ----
+    # Canonical dtypes for Bronze
     # string-like ids / labels
     for col in [
         "number_store",
@@ -856,7 +856,7 @@ def concat_frames_with_meta(*dfs: pd.DataFrame) -> pd.DataFrame:
         if col in df.columns:
             df[col] = df[col].astype("string")
 
-    # dates → pandas datetime64[ns] (Parquet-friendly)
+    # dates to pandas datetime64[ns] (Parquet-friendly)
     if "target_date" in df.columns:
         df["target_date"] = pd.to_datetime(
             df["target_date"], errors="raise"
