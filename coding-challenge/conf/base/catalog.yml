@@ -85,6 +85,10 @@ raw_1001_mapping_store:
   type: pandas.ParquetDataSet
   filepath: ${filepath_prefix}/00_raw/customer_1001/01_mappings/mapping_store.parquet
 
+raw_1001_mapping_delivery2sales:
+  type: pandas.ParquetDataSet
+  filepath: ${filepath_prefix}/00_raw/customer_1001/01_mappings/mapping_delivery_to_sales.parquet
+
 
 # COSMOS (customer 1002); identische Struktur/Args
 raw_1002_sales:
