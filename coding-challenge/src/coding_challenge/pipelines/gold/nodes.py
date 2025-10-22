@@ -114,22 +114,22 @@ def _dense_calendar(df: pd.DataFrame) -> pd.DataFrame:
     df["target_date"] = pd.to_datetime(df["target_date"], errors="raise").dt.date
     # Vollständiger Index je Paar
     out_parts = []
-    for (s, p), g in df.groupby(["id_store", "id_product"], dropna=False):
-        if g.empty:
+    for (store_id, product_id), grouped_df in df.groupby(["id_store", "id_product"], dropna=False):
+        if grouped_df.empty:
             continue
-        start = g["target_date"].min()
-        end = g["target_date"].max()
+        start = grouped_df["target_date"].min()
+        end = grouped_df["target_date"].max()
         full = pd.DataFrame({"target_date": pd.date_range(start, end, freq="D").date})
-        full = full.merge(g, on="target_date", how="left")
+        full = full.merge(grouped_df, on="target_date", how="left")
         # fehlende Mengen mit 0 auffüllen, stockout fehlend -> False, price forward-fill (statisch ok)
-        for c in ["sales_qty", "return_qty", "delivery_qty"]:
-            full[c] = pd.to_numeric(full[c], errors="coerce").fillna(0.0)
+        for col in ["sales_qty", "return_qty", "delivery_qty"]:
+            full[col] = pd.to_numeric(full[col], errors="coerce").fillna(0.0)
         full["stockout"] = full["stockout"].fillna(False).astype(bool)
         # Preis aus vorhandenen Zeilen übernehmen (stationär)
         if "price" in full.columns and full["price"].notna().any():
             full["price"] = full["price"].ffill().bfill()
-        full["id_store"] = s
-        full["id_product"] = p
+        full["id_store"] = store_id
+        full["id_product"] = product_id
         out_parts.append(full)
     return pd.concat(out_parts, ignore_index=True) if out_parts else df
 
@@ -217,7 +217,7 @@ def build_fact_daily_store_product(
             )
             m["factor"] = pd.to_numeric(m["factor"], errors="raise")
 
-            # join deliveries ↔ param map on (_customer_id, number_product == number_product_delivery)
+            # join deliveries <-> param map on (_customer_id, number_product == number_product_delivery)
             dlv = b.merge(
                 m,
                 left_on=["_customer_id", "number_product"],

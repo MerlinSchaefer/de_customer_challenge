@@ -29,9 +29,9 @@ erps:
         last_sale_time: "UhrzeitLetzterVk"
 
     prices:
-      wrapper: "Verkaufspreise"       # 🔹 top-level array key in the JSON
+      wrapper: "Verkaufspreise"       # top-level array key in the JSON
       product: "ArtikelNummer"
-      price: "ArtikelPreis"           # 🔹 match exact JSON casing
+      price: "ArtikelPreis"           # match exact JSON casing
 
     products:
       product: "ArtikelNummer"

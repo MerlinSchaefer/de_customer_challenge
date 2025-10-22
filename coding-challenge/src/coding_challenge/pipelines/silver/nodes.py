@@ -125,7 +125,7 @@ def build_silver_products(
 
     df = bp.merge(mp, on=["number_product", "_customer_id"], how="left", validate="m:1")
 
-    # (could be moved) if you enrich prices in Silver; if you enriched in Bronze, remove this block
+    # (could be moved) if we enrich prices in Silver; if we enriched in Bronze, remove this block
     if bronze_prices_1003 is not None and not bronze_prices_1003.empty:
         p3 = bronze_prices_1003.copy()
         p3["number_product"] = p3["number_product"].astype("string")
@@ -380,28 +380,30 @@ def build_silver_sales_daily(
     # compute stockout on raw keys
     fact = fact.sort_values(keys_raw)
 
-    def _compute_stockout(g: pd.DataFrame) -> pd.DataFrame:
+    def _compute_stockout(grouped_df: pd.DataFrame) -> pd.DataFrame:
         """Compute stockout status for a group of sales data.
 
         Args:
-            g (pd.DataFrame): Grouped DataFrame of sales data.
+            grouped_df (pd.DataFrame): Grouped DataFrame of sales data.
 
         Returns:
             pd.DataFrame: DataFrame with stockout status.
         """
+        # net inflow per day
         net = (
-            g["delivery_qty"].fillna(0)
-            + g["return_qty"].fillna(0)
-            - g["sales_qty"].fillna(0)
+            grouped_df["delivery_qty"].fillna(0)
+            + grouped_df["return_qty"].fillna(0)
+            - grouped_df["sales_qty"].fillna(0)
         )
-        rb = net.cumsum()
-        rb = rb.where(rb > 0, 0.0)
-        prev_rb = rb.shift(1).fillna(0.0)
-        st = (prev_rb == 0.0) & (g["sales_qty"] > 0.0)
-        if len(st) > 0:
-            st.iloc[0] = False  # first day never stockout (ASSUMPTION)
-        out = g.copy()
-        out["stockout"] = st.astype(bool)
+        # running balance
+        running_balance = net.cumsum()
+        running_balance = running_balance.where(running_balance > 0, 0.0) # no negative stock (?)
+        prev_running_balance = running_balance.shift(1).fillna(0.0)
+        stock = (prev_running_balance == 0.0) & (grouped_df["sales_qty"] > 0.0)
+        if len(stock) > 0:
+            stock.iloc[0] = False  # first day never stockout (ASSUMPTION)
+        out = grouped_df.copy()
+        out["stockout"] = stock.astype(bool)
         return out
 
     fact = fact.groupby(
