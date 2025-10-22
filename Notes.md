@@ -39,6 +39,7 @@ Pro Kunde leicht unterschiedlich (z. B. 1001 csv mit Semikolons; 1003 JSON):
 
 Input: 
 - CSV,JSON, später ggf. weitere
+
 Erstes Cleaning: 
 - Dezimalkomma -> Punkt, Datumsstrings -> DATE
 
