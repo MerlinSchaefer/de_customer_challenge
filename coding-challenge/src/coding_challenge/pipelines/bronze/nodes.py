@@ -82,7 +82,7 @@ def normalize_cosmos_sales_bronze(
     """
     # keep filenames when IncrementalDataSet returns dict{filename: df}
     df = _concat_incremental_with_source(raw_sales)
-    if df is None or df.empty:
+    if df is None or df.empty: # add error handling
         return pd.DataFrame(
             columns=[
                 "target_date",
@@ -93,7 +93,7 @@ def normalize_cosmos_sales_bronze(
                 "_source_file",
             ]
         )
-
+    # if necessary we could write different cols per customer id here
     cols = ingestion_config["erps"]["cosmos"]["columns"]["sales"]
     df = df.rename(
         columns={
@@ -311,10 +311,10 @@ def flatten_galaxy_deliveries_sales_bronze(
     # Accept IncrementalDataSet dict or a DataFrame
     if isinstance(raw_deliv_sales, dict):
         parts = []
-        for fname, d in raw_deliv_sales.items():
-            if d is None or d.empty:
+        for fname, data in raw_deliv_sales.items():
+            if data is None or data.empty:
                 continue
-            tmp = d.copy()
+            tmp = data.copy()
             tmp["_source_file"] = fname
             parts.append(tmp)
         df0 = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
@@ -353,7 +353,7 @@ def flatten_galaxy_deliveries_sales_bronze(
     hist = pd.json_normalize(fil[hist_key])
 
     # 3) map fields → bronze schema
-    out = pd.DataFrame(
+    df = pd.DataFrame(
         {
             "target_date": pd.to_datetime(
                 fil[root_date], errors="raise", dayfirst=True
@@ -373,9 +373,9 @@ def flatten_galaxy_deliveries_sales_bronze(
         }
     )
 
-    out["_customer_id"] = customer_id
+    df["_customer_id"] = customer_id
 
-    return out[
+    return df[
         [
             "target_date",
             "number_store",
@@ -408,16 +408,16 @@ def normalize_galaxy_prices_bronze_daily(
             columns=["target_date", "number_product", "price", "_customer_id"]
         )
 
-    f = ingestion_config["erps"]["galaxy"][
+    conf = ingestion_config["erps"]["galaxy"][
         "prices"
     ]  # {"wrapper":"Verkaufspreise","product":"ArtikelNummer","price":"ArtikelPreis"}
-    wrapper = f.get("wrapper", "Verkaufspreise")
-    prod_key, price_key = f["product"], f["price"]
+    wrapper = conf.get("wrapper", "Verkaufspreise")
+    prod_key, price_key = conf["product"], conf["price"]
 
     items = []
 
     if wrapper in df0.columns:
-        # NEW: robust per-cell extraction
+        # robust per-cell extraction
         for v in df0[wrapper].dropna():
             if isinstance(v, list):
                 items.extend(v)
@@ -838,10 +838,10 @@ def concat_frames_with_meta(*dfs: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame: unified frame with canonical dtypes, _ingest_ts and optional _row_hash.
     """
-    frames = [d for d in dfs if d is not None and not d.empty]
+    frames = [df for df in dfs if df is not None and not df.empty]
     if not frames:
         return pd.DataFrame()
-
+    # TODO: check if drop duplicates is needed here or upstream
     df = pd.concat(frames, ignore_index=True).drop_duplicates()
 
     # Canonical dtypes for Bronze
