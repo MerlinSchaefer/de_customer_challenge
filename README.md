@@ -50,28 +50,34 @@ We would like you to do a live execution of the pipeline for all customers and t
 
 # Installation guide
 
-create python environment using python 3.9.23.
+Create a Python environment using Python 3.9.23 with uv:
 
-e.g.
-````
-conda create --name CodingChallenge python=3.9
-````
-install all requirements 
-
-```
-pip install -r <path-to-folder>src/requirements.txt
+```bash
+python -m venv .venv
+source .venv/bin/activate  # On Linux/macOS
+.venv\Scripts\activate     # On Windows
 ```
 
-set your folder path in 
+Install  project dependencies:
 
+```bash
+pip install -r requirements.txt
 ```
- conf/1001_customer/globals
-```
+Alternatively use `uv` to setup the project and dependencies.
 
-while beeing inside of folder coding-challenge the following command starts a test pipeline:
+The pipeline consists of three layers that can be run individually or together:
 
-```
-kedro run --env 1001_customer --pipeline etl_example
+```bash
+# Run all pipelines
+kedro run
+
+# Run individual layers
+kedro run --pipeline=10_bronze
+kedro run --pipeline=20_silver
+kedro run --pipeline=30_gold
+
+# Visualize the pipeline
+kedro viz
 ```
 
 ## Need help?
